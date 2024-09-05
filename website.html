@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timer Program</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        #timer {
+            font-size: 50px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <button onclick="startTimer(10)">Bonus</button>
+    <button onclick="startTimer(5)">Question</button>
+    <button onclick="startTimer(60)">1:00</button>
+    <button onclick="startTimer(120)">2:00</button>
+    <button onclick="startTimer(300)">5:00</button>
+    <button id="pauseResumeBtn" onclick="pauseResumeTimer()" disabled>Pause</button>
+    <button onclick="resetTimer()">Reset</button>
+
+    <div id="timer">0:00</div>
+
+    <audio id="beep" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+
+    <script>
+        let timerInterval;
+        let beep = document.getElementById('beep');
+        let isTimerRunning = false;
+        let isPaused = false;
+        let initialTime = 0;
+        let timeRemaining = 0;
+        let timerWindow; // Reference to the second monitor window
+
+        function startTimer(seconds) {
+            if (isTimerRunning) return; // Prevent starting a new timer if one is already running
+
+            initialTime = seconds;
+            timeRemaining = seconds;
+            updateDisplay();
+
+            // Open a new window for the timer if it's not already open
+            if (!timerWindow || timerWindow.closed) {
+                timerWindow = window.open("", "Timer", "width=300,height=200");
+                timerWindow.document.write(`
+                    <html>
+                    <head>
+                        <title>Timer</title>
+                        <style>
+                            body {
+                                display: flex;
+                                justify-content: center;
+                                align-items: center;
+                                height: 100vh;
+                                margin: 0;
+                                font-family: Arial, sans-serif;
+                                font-size: 50px;
+                            }
+                            #timerDisplay {
+                                font-size: 100px; /* Increased font size */
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div id="timerDisplay"></div>
+                    </body>
+                    </html>
+                `);
+                timerWindow.document.close();
+            }
+
+            isTimerRunning = true;
+            isPaused = false;
+            document.getElementById('pauseResumeBtn').disabled = false;
+            document.getElementById('pauseResumeBtn').textContent = 'Pause';
+
+            startTimerInterval();
+        }
+
+        function startTimerInterval() {
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (!isPaused) {
+                    timeRemaining--;
+                    updateDisplay();
+
+                    if (timeRemaining <= 0) {
+                        clearInterval(timerInterval);
+                        isTimerRunning = false;
+                        playBeep();
+                        timerWindow.document.getElementById('timerDisplay').textContent = 'Time\'s up!';
+                        document.getElementById('pauseResumeBtn').disabled = true;
+                    }
+                }
+            }, 1000);
+        }
+
+        function updateDisplay() {
+            const timerElement = document.getElementById('timer');
+            timerElement.textContent = formatTime(timeRemaining);
+            if (timerWindow && !timerWindow.closed) {
+                timerWindow.document.getElementById('timerDisplay').textContent = formatTime(timeRemaining);
+            }
+        }
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
+        function playBeep() {
+            beep.volume = 1.0;  // Set the volume to 100%
+            let count = 0;
+            const interval = setInterval(() => {
+                beep.currentTime = 0; // Reset the beep to the start
+                beep.play();
+                count++;
+                if (count === 3) { // Stop after 3 repetitions
+                    clearInterval(interval);
+                }
+            }, 500); // Repeat every 0.5 seconds (500 milliseconds)
+        }
+
+        function pauseResumeTimer() {
+            if (isPaused) {
+                isPaused = false;
+                document.getElementById('pauseResumeBtn').textContent = 'Pause';
+                startTimerInterval();
+            } else {
+                isPaused = true;
+                document.getElementById('pauseResumeBtn').textContent = 'Resume';
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            isPaused = false;
+            timeRemaining = 0; // Reset to 0
+            updateDisplay();
+            document.getElementById('pauseResumeBtn').disabled = true;
+            document.getElementById('pauseResumeBtn').textContent = 'Pause';
+
+            // Reset the timer display in the second window to 0:00
+            if (timerWindow && !timerWindow.closed) {
+                timerWindow.document.getElementById('timerDisplay').textContent = '0:00';
+            }
+        }
+    </script>
+
+</body>
+</html>
